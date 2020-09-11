@@ -5,10 +5,6 @@ import org.apache.commons.lang.StringUtils;
 public class CSVHelper {
 	public static String escape(String s) {
 		if (s.contains(QUOTE)) {
-			
-			
-			
-			   
 			s = s.replace(QUOTE, ESCAPED_QUOTE);
 		}
 
@@ -19,7 +15,7 @@ public class CSVHelper {
 		return s;
 	}
 
-	public static String unEscape(String s) {
+	public static String unEscape(String s) { 
 		if (s == null) {
 			return s;
 		}
