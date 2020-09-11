@@ -1,0 +1,1181 @@
+package com.mexel.frmk.util;
+
+import java.math.BigDecimal;
+import java.text.DateFormatSymbols;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.mexel.frmk.db.DbInvoker;
+
+
+
+public class CommonUtils {
+	public static final String NEW_LINE = "\n";
+	public static final String TEXT_SEPERATOR = ",";
+	
+	public static final BigDecimal CR = new BigDecimal(10000000);
+	public static final BigDecimal LAC = new BigDecimal(100000);
+	public static final BigDecimal THOUSAND = new BigDecimal(1000);
+	private static final long DAY_IN_MILLI = 24 * 60 * 60 * 1000;
+
+	public static AgeValue getAge(Integer yr,Integer month, Integer day) {
+		if(yr ==null && month ==null && day ==null){
+			return null;
+		}
+		Calendar today = Calendar.getInstance();
+		Calendar other = Calendar.getInstance();
+		if(yr != null){
+			other.set(Calendar.YEAR, yr);
+		}
+		if(month != null){
+			other.set(Calendar.MONTH, month);
+		}
+		if(day != null){
+			other.set(Calendar.DAY_OF_MONTH, day);
+		}
+		return getDiff(today, other);
+	}
+
+
+	public static int[] getFollowUp(Calendar start, Calendar end) {
+		int d = (int) (Math
+				.abs(start.getTimeInMillis() - end.getTimeInMillis()) / DAY_IN_MILLI);
+		int diffMonth = d/30;
+		int diffWeek = d/7;
+		return new int[]{d,diffWeek,diffMonth};
+	}
+
+	public static AgeValue getDiff(Calendar start, Calendar end) {
+		int y = 0, m = 0;
+		int d = (int) (Math
+				.abs(start.getTimeInMillis() - end.getTimeInMillis()) / DAY_IN_MILLI);
+
+		y = d / 365;
+		if (y > 2) {
+			return new AgeValue("Y", y);
+		}
+		if (y != 0) {
+			d = d % (y * 365);
+		}
+
+		m = d / 30;
+
+		m += (y * 12);
+
+		if (m > 3) {
+			return new AgeValue("M", m);
+		}
+
+		return new AgeValue("D", d);
+	}
+	
+	public static Integer ageTobirthYear(Integer age) {
+		if (age == null) {
+			return null;
+		}
+		int year = Calendar.getInstance().get(Calendar.YEAR);
+		return year - age;
+	}
+
+
+	public static Integer[] ageTobirthDate(Integer yr, Integer month, Integer day) {
+		Calendar cal = Calendar.getInstance();
+		Integer[] age = new Integer[3];
+		
+		if (yr == null && month ==null && day ==null) {
+			return age;
+		}
+		if(yr != null){
+			cal.add(Calendar.YEAR, yr *-1);
+		}
+		if(month != null){
+			cal.add(Calendar.MONTH, month *-1);
+		}
+		if(day != null){
+			cal.add(Calendar.DAY_OF_YEAR, day *-1);
+		}
+		if(day != null || month != null || yr != null){
+			age[0] = cal.get(Calendar.YEAR);
+		}
+		if(day != null || month != null ){
+			age[0] = cal.get(Calendar.MONTH);
+		}
+
+		if(day != null  ){
+			age[0] = cal.get(Calendar.DAY_OF_MONTH);
+		}
+		return age;
+	}
+
+
+	public static String[] splitByLength(String str, int len) {
+
+		List<String> result = new ArrayList<String>();
+		try {
+			StringBuilder sb = new StringBuilder();
+
+			for (int i = 0; i < str.length(); i++) {
+				if (sb.length() >= len) {
+					while (true) {
+						if (i >= str.length()) {
+							break;
+						}
+						if (str.charAt(i) == ' ' || str.charAt(i) == ',') {
+							result.add(sb.toString().trim());
+							sb.setLength(0);
+							break;
+						}
+						sb.append(str.charAt(i));
+						i++;
+					}
+				} else {
+					sb.append(str.charAt(i));
+				}
+			}
+			if (sb.length() > 0) {
+				result.add(sb.toString().trim());
+
+			}
+		} catch (Throwable t) {
+			t.printStackTrace();
+			result.clear();
+			result.add(str);
+		}
+		return result.toArray(new String[result.size()]);
+
+	}
+
+
+	public static String emptyIfNull(String str) {
+		return str == null ? "" : str;
+	}
+
+	public static String emptyIfNull(Integer i) {
+		return i == null ? "" : i.toString();
+	}
+	public static String zeroIfNull(Integer i) {
+		return i == null ? "0" : i.toString();
+	}
+
+	public static String emptyIfNull(AgeValue age) {
+		return age == null ? "" : age.toString();
+	}
+
+	public static String nullIfEmpty(String str) {
+		return str == null || str.trim().equals("") ? null : str;
+	}
+
+
+	public static Integer toInt(String str) {
+		try {
+			return Integer.parseInt(str);
+		} catch (Exception ex) {
+			return null;
+		}
+	}
+
+	public static Long toLong(String str) {
+		return toLong(str, null);
+	}
+
+	public static Long toLong(String str, Long defaultValue) {
+		try {
+			return Long.parseLong(str);
+		} catch (Exception ex) {
+			return defaultValue;
+		}
+	}
+	
+	public static String convertToAmPm(Long time) {
+		  Long hrs,min;
+		  String ampm;
+		   hrs=(time/100);
+		   min=(time%100);
+		   if(time >= 1200)
+		   {
+		   return ampm=String.format("%02d", (hrs%12))+":"+String.format("%02d",min)+" PM";
+		   }
+		   else
+		   return ampm=String.format("%02d", (hrs%12))+":"+String.format("%02d",min)+" AM";
+	}
+	
+//	public static boolean startsWith(String text, String str) {
+//		if (text == null || str == null) {
+//			return false;
+//		}
+//		return text.toUpperCase(Locale.getDefault()).startsWith(
+//				str.toUpperCase(App.locale));
+//	}
+
+	// public static String append(String... strs) {
+	// return append(" ", strs);
+	// }
+
+	public static String append(String seperator, String... objects) {
+		if (objects == null) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+		for (String s : objects) {
+			if (s == null) {
+				continue;
+			}
+			if (!first && sb.length()>0) {
+				sb.append(seperator);
+			}
+			sb.append(s);
+			first = false;
+		}
+		return sb.toString();
+	}
+
+	public static String append(String seperator, Long... objects) {
+		if (objects == null) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+		for (Long s : objects) {
+			if (s == null) {
+				continue;
+			}
+			if (!first) {
+				sb.append(seperator);
+			}
+			sb.append(s);
+			first = false;
+		}
+		return sb.toString();
+	}
+
+	public static String append(String seperator, List<String> objects) {
+		if (objects == null) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+		for (String s : objects) {
+			if (s == null) {
+				continue;
+			}
+			if (!first) {
+				sb.append(seperator);
+			}
+			sb.append(s);
+			first = false;
+		}
+		return sb.toString();
+	}
+
+	public static String append(String seperator, int... integers) {
+		if (integers == null) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+		for (int i : integers) {
+			if (!first) {
+				sb.append(seperator);
+			}
+			sb.append(i);
+			first = false;
+		}
+		return sb.toString();
+	}
+
+	public static String appendKeyValue(String seperator, String... strs) {
+		if (strs == null) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+		for (int i = 0; i < strs.length; i++) {
+			String label = strs[i];
+			String value = strs[++i];
+			String s = nullIfEmpty(value);
+			if (s == null) {
+				continue;
+			}
+			if (!first) {
+				sb.append(seperator);
+			}
+			sb.append(label).append(" ").append(value);
+			first = false;
+		}
+		return sb.toString();
+	}
+
+	public static String appendForSql(Object... objs) {
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+		for (Object ob : objs) {
+			String s = "";
+			if (ob instanceof String) {
+				String str = ob.toString().replace("'", "");
+				s = "'" + str + "'";
+			} else if (ob instanceof Number) {
+				s = ob.toString();
+			} else if (ob != null) {
+				s = "'" + ob.toString() + "'";
+			} else {
+				s = "null";
+			}
+			if (!first) {
+				sb.append(",");
+			}
+			sb.append(s);
+			first = false;
+		}
+		return sb.toString();
+	}
+
+	public static boolean isEmpty(String str) {
+		return str == null || "".equals(str.trim());
+	}
+
+	public static String toString(Double f) {
+		if (f != null) {
+			return f.toString();
+		}
+		return "";
+	}
+	
+	public static String toString(Long f) {
+		if (f != null) {
+			return f.toString();
+		}
+		return "";
+	}
+
+
+	public static String toString(Integer i) {
+		if (i != null) {
+			return i.toString();
+		}
+		return "";
+	}
+
+
+	public static Double asDouble(String str) {
+		try {
+			return asDouble(str, null);
+		} catch (Exception ex) {
+			return null;
+		}
+
+	}
+
+	public static Double asDouble(String str, Double defaultValue) {
+		try {
+			return str == null ? defaultValue : Double.parseDouble(str);
+		} catch (Exception ex) {
+			return defaultValue;
+		}
+
+	}
+
+	public static Integer asInt(String str, Integer defaultValue) {
+		try {
+			return str == null ? defaultValue : (int)Double.parseDouble(str);
+		} catch (Exception ex) {
+			return defaultValue;
+		}
+
+	}
+
+
+	public static Date toDisplayDate(String str) {
+		if (isEmpty(str)) {
+			return null;
+		}
+		try {
+			return new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+					.parse(str);
+
+		} catch (ParseException e) {
+			return toDate(str);
+		}
+
+	}
+
+	public static Date toDate(String str) {
+		return toDate(str, DbInvoker.DEFAULT_DATE_FORMAT);
+	}
+
+	public static Date toDateTime(String str) {
+		return toDate(str, DbInvoker.DEFAULT_DATE_FORMAT+DbInvoker.DEFAULT_TIME_FORMAT);
+	}
+
+	public static Date toDate(String str, String format) {
+		if (isEmpty(str)) {
+			return null;
+		}
+		try {
+			return new SimpleDateFormat(format, Locale.getDefault()).parse(str);
+		} catch (ParseException e) {
+			return null;
+		}
+	}
+	
+	public static String longToFormatedTime(long time,String format){
+		if(time >0){
+			return formatDateForDisplay(new Date(time), format);	
+		}
+	 	   return ""; 
+	}
+
+	public static Date toTime(String str) {
+		if (isEmpty(str)) {
+			return null;
+		}
+		try {
+			return new SimpleDateFormat(DbInvoker.DEFAULT_TIME_FORMAT,
+					Locale.getDefault()).parse(str);
+		} catch (ParseException e) {
+			return null;
+		}
+	}
+
+	public static String formatDateForDisplay(Date d, String format) {
+		if (d == null) {
+			return "";
+		}
+		return new SimpleDateFormat(format, Locale.getDefault()).format(d);
+
+	}
+
+	public static String formatDate(Date d, String format) {
+		return formatDateForDisplay(d, format);
+	}
+
+	public static String formatDate(Date d) {
+		return formatDateForDisplay(d, "dd/MM/yyyy");
+	}
+
+	public static String formatDateForReport(Date d) {
+		return formatDateForDisplay(d, "dd/MM/yyyy");
+	}
+
+	public static String formatDateForDisplay(Date d) {
+		return formatDateForDisplay(d, "dd/MM/yyyy");
+	}
+
+//	public static String toUserFriendlyDate(Context context, Date d, Date time, boolean allowPast) {
+//		if (d == null) {
+//			return "";
+//		}
+//		Calendar c = Calendar.getInstance();
+//
+//		Calendar c1 = Calendar.getInstance();
+//		c1.setTime(d);
+//		String timeText = "";
+//		if(time != null){
+//			timeText = " "+ formatTimeForDisplay(context,
+//					time);
+//		}
+//
+//		if (compare(c, c1) == 0) {
+//			
+//			return context.getResources().getString(R.string.today) +timeText;
+//		}
+//		c.add(Calendar.DAY_OF_YEAR, 1);
+//		if (compare(c, c1) == 0) {
+//			return context.getResources().getString(R.string.tomorrow)+timeText;
+//		}
+//		c.add(Calendar.DAY_OF_YEAR, -2);
+//		if (allowPast && compare(c, c1) == 0) {
+//			return context.getResources().getString(R.string.yesterday)+timeText;
+//		}
+//		SimpleDateFormat format;
+//		if (c.get(Calendar.YEAR) == c1.get(Calendar.YEAR)) {
+//			format = new SimpleDateFormat("EEE, d MMM", App.locale);
+//		}else if (c.get(Calendar.YEAR) <=2000) {
+//			format = new SimpleDateFormat("EEE, d MMM yyyy",App.locale);
+//		}  
+//		else {
+//			format = new SimpleDateFormat("EEE, d MMM yy",App.locale);
+//		}
+//		return format.format(d);
+//	}
+//
+//	public static String formatDateForDisplay(Context context, Date date) {
+//		if (date == null) {
+//			return "";
+//		}
+//		return android.text.format.DateFormat.getDateFormat(context).format(
+//				date);
+//	}
+
+	public static String formatTimeForDisplay(int h, int m) {
+//		String amPm = "AM";
+//		if (h >= 12) {
+//			amPm = "PM";
+//			h = h - 12;
+//		}
+		return prefixZero(h) + ":" + prefixZero(m);
+	}
+
+	public static String formatTimeForDisplay(Date time) {
+		if (time == null) {
+			return "";
+		}
+		return formatTime(time);
+	}
+
+	public static String format(Date d) {
+		if (d == null) {
+			return "";
+		}
+		return new SimpleDateFormat(DbInvoker.DEFAULT_DATE_FORMAT,
+				Locale.getDefault()).format(d);
+	}
+
+	public static String formatDateTime(Date d) {
+		if (d == null) {
+			return "";
+		}
+		return new SimpleDateFormat(DbInvoker.DEFAULT_DATE_FORMAT,
+				Locale.getDefault()).format(d);
+	}
+
+	public static String formatTime(Date d) {
+		return formatTime(d, DbInvoker.DEFAULT_TIME_FORMAT);
+	}
+	
+	public static String formatTime(Date d, TimeZone timeZone) {
+		return formatTime(d, DbInvoker.DEFAULT_TIME_FORMAT);
+	}
+
+	public static String formatTime(Date d, String format) {
+		return formatTime(d,format, null);
+	}
+	public static String formatTime(Date d, String format, TimeZone timeZone) {
+		if (d == null) {
+			return "";
+		}
+		if(timeZone != null){
+			
+		}
+		SimpleDateFormat sdf = new SimpleDateFormat(format, Locale.getDefault());
+		if(timeZone != null){
+			sdf.setTimeZone(timeZone);
+		}
+		return sdf.format(d);
+	}
+
+	public static boolean isToday(Date d) {
+		if (d == null) {
+			return false;
+		}
+		Calendar c = Calendar.getInstance();
+		SimpleDateFormat formater = new SimpleDateFormat("dd/MM/yyyy",
+				Locale.getDefault());
+		return formater.format(d).equals(formater.format(c.getTime()));
+	}
+
+	public static String lpad(char padChar, String str, int len) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = str.length(); i < len; i++) {
+			sb.append(padChar);
+		}
+		sb.append(str);
+		return sb.toString();
+	}
+
+	public static String dateBeforeTodayAsText(Date d) {
+		Calendar other = Calendar.getInstance();
+		other.setTime(d);
+		Calendar today = Calendar.getInstance();
+
+		String gapText = "Year";
+		int gap = today.get(Calendar.YEAR) - other.get(Calendar.YEAR);
+
+		if (gap == 0) {
+			gapText = "Month";
+			gap = today.get(Calendar.MONTH) - other.get(Calendar.MONTH);
+			if (gap == 0) {
+				gap = today.get(Calendar.WEEK_OF_MONTH)
+						- other.get(Calendar.WEEK_OF_MONTH);
+				gapText = "Week";
+				if (gap == 0 || gap == 1) {
+					gapText = "Day";
+					gap = today.get(Calendar.DAY_OF_MONTH)
+							- other.get(Calendar.DAY_OF_MONTH);
+
+					if (gap == 0) {
+						gapText = "Today";
+					}
+				}
+			}
+		}
+
+		if ("Today".equals(gapText)) {
+			return gapText;
+		}
+		if ("Day".equals(gapText) && gap == 1) {
+			return "Yesterday";
+		}
+		return gap + " " + (gap > 1 ? gapText + "s" : gapText) + " Before";
+	}
+
+//	public void exportLog() {
+//		File file = new File(Environment.getExternalStorageDirectory(),
+//				"log.txt");
+//		FileOutputStream out = null;
+//		try {
+//			out = new FileOutputStream(file);
+//		} catch (FileNotFoundException e1) {
+//			return;
+//		}
+//		// final StringBuilder log = new StringBuilder();
+//		try {
+//			ArrayList<String> commandLine = new ArrayList<String>();
+//			commandLine.add("logcat");
+//			commandLine.add("-d");
+//			// ArrayList<String> arguments = ((params != null) && (params.length
+//			// > 0)) ? params[0] : null;
+//			// if (null != arguments){
+//			// commandLine.addAll(arguments);
+//			// }
+//			Process process = Runtime.getRuntime().exec(
+//					commandLine.toArray(new String[0]));
+//			BufferedReader bufferedReader = new BufferedReader(
+//					new InputStreamReader(process.getInputStream()));
+//			String line;
+//			while ((line = bufferedReader.readLine()) != null) {
+//				out.write((line + "\n").getBytes("ISO-8859-1"));
+//			}
+//			out.close();
+//		} catch (IOException e) { // } return log;
+//		}
+//	}
+
+//	public static void hideSoftKeyboard(Dialog context) {
+//		View focused = context.getCurrentFocus();
+//		if (focused != null) {
+//			InputMethodManager inputMethodManager = (InputMethodManager) context
+//					.getContext().getSystemService(
+//							Activity.INPUT_METHOD_SERVICE);
+//			if (inputMethodManager.isActive()) {
+//				inputMethodManager.hideSoftInputFromWindow(
+//						focused.getWindowToken(), 0);
+//			}
+//		}
+//	}
+
+//	public static void hideSoftKeyboard(Context context) {
+//		View focused = null;
+//		if (context instanceof Activity) {
+//			focused = ((Activity) context).getCurrentFocus();
+//			if (focused != null) {
+//				InputMethodManager inputMethodManager = (InputMethodManager) context
+//						.getSystemService(Activity.INPUT_METHOD_SERVICE);
+//				if (inputMethodManager.isActive()) {
+//					inputMethodManager.hideSoftInputFromWindow(
+//							focused.getWindowToken(), 0);
+//				}
+//			}
+//		}
+//	}
+
+//	public static void showSoftKeyboard(Context context, View view) {
+//		if (context instanceof Activity) {
+//			InputMethodManager inputMethodManager = (InputMethodManager) context
+//					.getSystemService(Activity.INPUT_METHOD_SERVICE);
+//			inputMethodManager.showSoftInput(view, 0);
+//		}
+//	}
+
+	public static Date[] calculateMonthStartEnd(Calendar c) {
+		Date[] range = new Date[2];
+		c.set(Calendar.DAY_OF_MONTH, 1);
+		int month = c.get(Calendar.MONTH);
+		range[0] = c.getTime();
+		for (int i = 29; i <= 32; i++) {
+			c.set(Calendar.DAY_OF_MONTH, i);
+			if (c.get(Calendar.MONTH) != month) {
+				c.add(Calendar.DAY_OF_MONTH, -1);
+				range[1] = c.getTime();
+				break;
+			}
+		}
+		return range;
+	}
+
+	public static Date[] calculateRangeToday(Calendar c) {
+		Date[] range = new Date[2];
+		range[0] = c.getTime();
+		range[1] = c.getTime();
+		return range;
+	}
+
+	public static Date[] calculateYearStartEnd(Calendar c) {
+		Date[] range = new Date[2];
+		if (c.get(Calendar.MONTH) < 4) {
+			c.add(Calendar.YEAR, -1);
+		}
+		c.set(Calendar.DAY_OF_MONTH, 1);
+		c.set(Calendar.MONTH, Calendar.APRIL);
+		range[0] = c.getTime();
+
+		c.add(Calendar.MONTH, 11);
+		c.set(Calendar.DAY_OF_MONTH, 31);
+
+		range[1] = c.getTime();
+
+		return range;
+	}
+
+	public static int compareWithToday(Date date) {
+
+		Calendar c1 = Calendar.getInstance();
+		Calendar c2 = Calendar.getInstance();
+		c2.setTime(date);
+		return compare(c1, c2);
+
+	}
+
+	public static boolean isBetween(Date d, Date d1, Date d2) {
+		Calendar c = Calendar.getInstance();
+		c.setTime(d);
+
+		Calendar c1 = Calendar.getInstance();
+		c1.setTime(d1);
+		Calendar c2 = Calendar.getInstance();
+		c2.setTime(d2);
+
+		return compare(c, c1) >= 0 && compare(c, c2) <= 0;
+
+	}
+
+	public static boolean isBetween(Calendar c, Calendar c1, Calendar c2) {
+		return compare(c, c1) >= 0 && compare(c, c2) <= 0;
+
+	}
+
+	public static int compare(Date d1, Date d2) {
+		Calendar c1 = Calendar.getInstance();
+		c1.setTime(d1);
+		Calendar c2 = Calendar.getInstance();
+		c2.setTime(d2);
+		return compare(c1, c2);
+
+	}
+
+	public static int compare(Calendar c1, Calendar c2) {
+
+		int result = compare(c1, c2, Calendar.YEAR);
+		if (result == 0) {
+			result = compare(c1, c2, Calendar.DAY_OF_YEAR);
+		}
+		return result;
+	}
+
+	public static int compare(Calendar c1, Calendar c2, int field) {
+		Integer i1 = c1.get(field);
+		Integer i2 = c2.get(field);
+		return i1.compareTo(i2);
+	}
+
+	public static String format(Double d) {
+		if(d==null){
+			return "";
+		}
+		
+		return new DecimalFormat("#").format(d);
+	}
+
+	public static String formatAmount(Double d) {
+		return  formatAmount(d, 0d);
+	}
+
+	public static String formatAmount(Double d, Double defaultValue) {
+		return amountFormater().format(d==null?defaultValue:d);
+	}
+
+	public static String formatNumber(Number n) {
+		if(n==null){
+			return "";
+		}
+		return numberFormater().format(n);
+	}
+
+	public static NumberFormat numberFormater() {
+		return NumberFormat.getIntegerInstance();
+	}
+
+	public static NumberFormat amountFormater() {
+		NumberFormat f = DecimalFormat.getInstance();
+		f.setMaximumFractionDigits(2);
+		f.setMinimumFractionDigits(2);
+		return f;
+	}
+
+
+
+	public static boolean isAllEmpty(String... strs) {
+		for (String s : strs) {
+			if (!StringUtils.isEmpty(s)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	public static boolean isSameDate(Date d1, Date d2) {
+		if(d1 != null && d2 != null){
+			return compare(d1, d2) ==0;
+		}
+		return false;
+	}
+
+	public static String toGenederDisplay(String gen) {
+		if (gen == null) {
+			return "";
+		}
+		return gen.equals("M") ? "MALE" : gen.equals("F") ? "FEMALE" : "";
+	}
+
+
+	public static void append(StringBuilder sb, Object ob, String seperator) {
+		if (ob == null) {
+			return;
+		}
+		if (sb.length() > 0) {
+			sb.append(seperator);
+		}
+		sb.append(ob);
+	}
+	public static String appendForAudit(Object... objects) {
+		StringBuilder sb = new StringBuilder();
+		for(Object ob:objects){
+			if(ob instanceof Auditable){
+				sb.append(((Auditable)ob).getAuditLog());	
+			}
+			else if(ob != null){
+				sb.append(ob.toString());
+			}
+			sb.append(";");
+		}
+		return sb.toString();
+	}
+
+	public static void appendWithCommaIfRequired(StringBuilder sb, Object ob) {
+		if (ob == null) {
+			return;
+		}
+		if (sb.length() > 0) {
+			sb.append(",");
+		}
+		sb.append(ob);
+	}
+
+	
+//	public static <T> void addAll(ArrayAdapter<T> adapter, Collection<T> objects) {
+//		adapter.clear();
+//		if (objects != null) {
+//			// If the platform supports it, use addAll, otherwise add in loop
+//			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+//				adapter.addAll(objects);
+//			} else {
+//				for (T item : objects) {
+//					adapter.add(item);
+//				}
+//			}
+//			adapter.notifyDataSetChanged();
+//		}
+//	}
+
+	public static String prefixZero(int value) {
+		return value < 10 ? "0" + value : "" + value;
+	}
+
+	public static String formatDate(int yr, int month, int day) {
+		return prefixZero(month) + prefixZero(day) + yr;
+	}
+
+	public static String formatDayOfMonth(int n) {
+
+		if (n >= 11 && n <= 13) {
+			return n + "th";
+		}
+		switch (n) {
+		case 1:
+			return n + "st";
+		case 2:
+			return n + "nd";
+		case 3:
+			return n + "rd";
+		default:
+			return n + "th";
+		}
+
+	}
+	
+	public static String toString(String seperator, Object[] array){
+		if(array ==null){
+			return null;
+		}
+		StringBuilder sb = new StringBuilder();
+		for(Object ob:array){
+			if(sb.length() > 0){
+				sb.append(seperator);
+			}
+			sb.append(ob);
+		}
+		return sb.toString();
+	}
+
+	public static String[] toArray(String seperator, String str){
+		if(str ==null){
+			return null;
+		}
+		return StringUtils.split(str, seperator );
+	}
+	
+	
+	public static double round(double d) {
+		return Math.round(d * 100.0) / 100.0;
+	}
+	
+	public static int getGapInDays(Date dt){
+		Calendar start = Calendar.getInstance();
+		Calendar end = Calendar.getInstance();
+		end.setTime(dt);
+		return (int) (Math
+				.abs(start.getTimeInMillis() - end.getTimeInMillis()) / DAY_IN_MILLI);
+
+	}
+	
+	public static int getGapInDays(Date dt1 , Date dt2){
+		Calendar start = Calendar.getInstance();
+		Calendar end = Calendar.getInstance();
+		start.setTime(dt1);
+		end.setTime(dt2);
+		return (int) (Math
+				.abs(start.getTimeInMillis() - end.getTimeInMillis()) / DAY_IN_MILLI);
+
+	}
+
+	public static boolean isImageType(String fileType){
+		return "jpeg".equalsIgnoreCase(fileType) ||"png".equalsIgnoreCase(fileType) ||
+				"jpg".equalsIgnoreCase(fileType) ||"bmp".equalsIgnoreCase(fileType)
+				||"gif".equalsIgnoreCase(fileType) 
+				;
+	}
+	
+	public static String formatAmountINR(double value, boolean flag) {
+		if (flag) {
+			if (Math.abs(value) < 1000) {
+				return format("###", value);
+			}
+			double hundreds = value % 1000;
+			int other = (int) (value / 1000);
+			return format(",##", other) + ',' + format("000", hundreds);
+		}
+		final boolean isNegative = value < 0;
+		final String post;
+		BigDecimal outValue;
+		final int scale;
+		final BigDecimal val = new BigDecimal(Math.abs(value));
+		if (val.compareTo(CR) >= 0) {
+			post = "Cr";
+			outValue = val.divide(CR);
+			scale = 2;
+		} else if (val.compareTo(LAC) >= 0) {
+			post = "Lac";
+			outValue = val.divide(LAC);
+			scale = 2;
+		} else if (val.compareTo(THOUSAND) >= 0) {
+			post = "K";
+			outValue = val.divide(THOUSAND);
+			scale = 2;
+		} else {
+			post = "/-";
+			outValue = val;
+			scale = 0;
+		}
+
+		if (isNegative) {
+			outValue = outValue.negate();
+		}
+		DecimalFormat df = new DecimalFormat();
+
+		df.setMaximumFractionDigits(scale);
+
+		df.setMinimumFractionDigits(0);
+
+		df.setGroupingUsed(false);
+
+		return df.format(outValue.setScale(scale, BigDecimal.ROUND_HALF_DOWN))
+				+ (StringUtils.isEmpty(post) ? "" : " " + post);
+
+		// return outValue.setScale(scale,
+		// BigDecimal.ROUND_HALF_DOWN).toPlainString() +" "+post ;
+	}
+	
+	private static String format(String pattern, Object value) {
+		return new DecimalFormat(pattern).format(value);
+	}
+	
+	public static String toUserFriendlyDate(Date d) {
+		if (d == null) {
+			return "";
+		}
+		Calendar c = Calendar.getInstance();
+
+		Calendar c1 = Calendar.getInstance();
+		c1.setTime(d);
+
+		if (CommonUtils.compare(c, c1) == 0) {
+			return "Today";
+		}
+		c.add(Calendar.DAY_OF_YEAR, 1);
+		if (CommonUtils.compare(c, c1) == 0) {
+			return "Tomorrow";
+		}
+		c.add(Calendar.DAY_OF_YEAR, -2);
+		if (CommonUtils.compare(c, c1) == 0) {
+			return "Yesterday";
+		}
+		SimpleDateFormat format;
+		if (c.get(Calendar.YEAR) == c1.get(Calendar.YEAR)) {
+			format = new SimpleDateFormat("EEE, d MMM");
+		}else if (c.get(Calendar.YEAR) <=2000) {
+			format = new SimpleDateFormat("EEE, d MMM yyyy");
+		}  
+		else {
+			format = new SimpleDateFormat("EEE, d MMM yy");
+		}
+		return format.format(d);
+	}
+	
+	public static int getRandomOTP(){
+		return (int) (100000 + Math.random() * 900000);
+//		   long timeSeed = System.nanoTime(); // to get the current date time value
+//		         double randSeed = Math.random() * 100000; // random number generation
+//		         long midSeed = (long) (timeSeed * randSeed); 
+//		         String s = midSeed + "";
+//		         return s.substring(s.length()-6);
+		  }
+	
+	public static String generateUniqueToken(Object...keys ){
+		StringBuilder sb = new StringBuilder();
+		for(Object s:keys){
+			if(s != null){
+				sb.append(s.toString());
+			}
+		}
+		//added a random number to avoid possiblity of generating token manually.
+		double randSeed = Math.random() * 100000;
+		sb.append(randSeed);
+		return sb.toString();
+	}
+	
+	public static int countNoOfSunday(Calendar cal){
+		Calendar c1 = (Calendar ) cal.clone();
+		c1.set(Calendar.DAY_OF_MONTH, 1);
+		int count = 0;
+		int month = cal.get(Calendar.MONTH);
+		for(int i=0;i<31;i++){
+			if(c1.get(Calendar.MONTH) != month){
+				return count;
+			}
+			int day = c1.get(Calendar.DAY_OF_WEEK); 
+			if(day == Calendar.SUNDAY){
+				count++;
+				c1.add(Calendar.DAY_OF_YEAR, 7);
+			}
+			else{
+				c1.add(Calendar.DAY_OF_YEAR, 1);
+			}
+		}
+		return count;
+	}
+	
+	public static void main (String[] args){
+		
+		System.out.println(getTimeDiff("1200", "1615"));	
+		
+	}
+	
+	public static String getTimeDiff(String start, String end){
+		boolean startPM = false;
+		boolean endPM = false;
+		if(start.toUpperCase().contains("PM")){
+			startPM = true;
+			
+		}
+		if(end.toUpperCase().contains("PM")){
+			endPM = true;
+		}
+		start = start.toUpperCase().replace("PM", "");
+		start = start.toUpperCase().replace("AM", "");
+		end = end.toUpperCase().replace("AM", "");
+		end = end.toUpperCase().replace("PM", "");
+		start = start.replace(":", "").trim();
+		end = end.replace(":", "").trim();
+
+		int startHr = CommonUtils.asInt(start.substring(0, 2), 0);
+		int endHr= CommonUtils.asInt(end.substring(0, 2),0);
+		if(startPM && startHr >=12){
+			startHr = startHr-12;
+		}
+		if(endPM && endHr >=12){
+			endHr = endHr-12;
+		}
+		
+		int startMinute = CommonUtils.asInt(start.substring(2),0);
+
+		int endMinute = CommonUtils.asInt(end.substring(2),0);
+		int startTime = (startHr+ (startPM?12:0))*60 + startMinute;
+		int endTime = (endHr+ (endPM?12:0))*60 + endMinute;
+		int diff = endTime-startTime;
+		int hr = diff/60;
+		int minute = diff %60;
+		if(diff <=0){
+			return "NA";
+		}
+		return ""+Math.abs(hr)+" Hr "+ (minute >0?minute+" Minute":"");
+	}
+
+	
+	public static String toString(Throwable e) {
+	    StringBuilder sb = new StringBuilder();
+	    for (StackTraceElement element : e.getStackTrace()) {
+	        sb.append(element.toString());
+	        sb.append("\n");
+	    }
+	    return sb.toString();
+	}
+	
+	public static Long[] convertStringArrayToLongArray(String[] str){
+		Long[] data = new Long[str.length];
+		for (int i = 0; i < str.length; i++) {
+		  data[i] = Long.valueOf(str[i]);
+		}
+		return data;
+	}
+	public static String getMonthText(int num) {
+        String month = "";
+        DateFormatSymbols dfs = new DateFormatSymbols();
+        String[] months = dfs.getMonths();
+        if (num >= 0 && num <= 11 ) {
+            month = months[num];
+        }else{
+        	month = "wrong month number";
+        }
+        return month;
+    }
+}
